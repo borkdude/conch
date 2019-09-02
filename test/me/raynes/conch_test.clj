@@ -4,6 +4,7 @@
   (:import clojure.lang.ExceptionInfo))
 
 (deftest output-test
+  (prn "output test")
   (sh/let-programs [errecho "test/testfiles/errecho"]
     (sh/with-programs [echo]
       (testing "By default, output is accumulated into a monolitic string"
@@ -29,8 +30,9 @@
           (echo "hi" {:out writer})
           (is (= (str writer) "hi\n")))))))
 
-(defn input-stream-to-byte-array [is]
+(defn input-stream-to-byte-array
   "Convert an input stream is to byte array"
+  [is]
   (with-open [baos (java.io.ByteArrayOutputStream.)]
     (let [ba (byte-array 2000)]
       (loop [n (.read is ba 0 2000)]
@@ -39,12 +41,14 @@
           (recur (.read is ba 0 2000))))
       (.toByteArray baos))))
 
-(defn file-to-bytearray [file]
+(defn file-to-bytearray
   "Convert a file to a byte array"
+  [file]
   (let [is (clojure.java.io/input-stream file)]
     (input-stream-to-byte-array is)))
 
 (deftest output-test-binary
+  (prn "bin test")
   (sh/let-programs [errecho "test/testfiles/errecho"]
     (sh/with-programs [cat]
       (let [binary-file-path (.getAbsolutePath (java.io.File. "test/testfiles/bytes_0_through_255"))
