@@ -4,17 +4,20 @@
             [clojure.string :as string])
   (:import java.util.concurrent.LinkedBlockingQueue))
 
+
+#_(set! *warn-on-reflection* true)
+
 (def ^:dynamic *throw*
   "If set to false, exit codes are ignored. If true (default),
    throw exceptions for non-zero exit codes."
   true)
-
+2
 (defprotocol Redirectable
   (redirect [this options k proc]))
 
 (defn byte? [x]
   (and (not (nil? x))
-       (= java.lang.Byte (.getClass x))))
+       (instance? java.lang.Byte x)))
 
 (defn test-array
   [t]
@@ -26,6 +29,7 @@
 
 
 (defn write-to-writer [writer s is-binary]
+  (prn "TYPE" (type writer))
   (cond
    (byte? (first s)) (.write writer (byte-array s))
    (or (not is-binary)
@@ -62,12 +66,14 @@
   Redirectable
   (redirect [_ options k proc]
     (let [seqify (:seq options)
-          s (k proc)]
-      (cond
-       (seqify? options k) s
-       (byte? (first s)) (byte-array s)
-       (byte-array? (first s)) (byte-array (mapcat seq s))
-       :else (string/join s)))))
+          s (k proc)
+          ret (cond
+                (seqify? options k) (do (prn "1") s)
+                (byte? (first s)) (byte-array s)
+                (byte-array? (first s)) (byte-array (mapcat seq s))
+                :else (do (prn "ELSE") (string/join s)))]
+      (prn "AFTER RET")
+      ret)))
 
 (defprotocol Drinkable
   (drink [this proc]))
@@ -208,11 +214,14 @@
             exit-code (future (if timeout
                                 (conch/exit-code proc timeout)
                                 (conch/exit-code proc)))]
+        #_(prn "TYPES" "in" (type in) "out" (type out))
         (when in (future (get-drunk in proc)))
         (let [proc-out (future (redirect out options :out proc))
               proc-err (future (redirect err options :err proc))
               proc-out @proc-out
+              _ (prn "AFTER PROC OUT" name)
               proc-err @proc-err
+              _ (prn "AFTER PROC ERR" name)
               verbose-out {:proc proc
                            :exit-code exit-code
                            :stdout proc-out
@@ -221,6 +230,8 @@
                        verbose verbose-out
                        (= (:seq options) :err) proc-err
                        :else proc-out)]
+          (prn "HERE 1" name)
+          (prn "HERE 2" @exit-code)
           ;; Not using `zero?` here because exit-code can be a keyword.
           (if (= 0 @exit-code)
             result
@@ -232,7 +243,8 @@
                        *throw*)
                   (exit-exception verbose-out)
 
-                  :else result))))
+                  :else result))
+          (prn "NAME YO" name)))
       (catch InterruptedException e
         (conch/destroy proc)
         (throw e)))))
