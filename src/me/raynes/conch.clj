@@ -29,7 +29,6 @@
 
 
 (defn write-to-writer [writer s is-binary]
-  (prn "TYPE" (type writer))
   (cond
    (byte? (first s)) (.write writer (byte-array s))
    (or (not is-binary)
@@ -71,8 +70,7 @@
                 (seqify? options k) (do (prn "1") s)
                 (byte? (first s)) (byte-array s)
                 (byte-array? (first s)) (byte-array (mapcat seq s))
-                :else (do (prn "ELSE") (string/join s)))]
-      (prn "AFTER RET")
+                :else (string/join s))]
       ret)))
 
 (defprotocol Drinkable
@@ -219,9 +217,7 @@
         (let [proc-out (future (redirect out options :out proc))
               proc-err (future (redirect err options :err proc))
               proc-out @proc-out
-              _ (prn "AFTER PROC OUT" name)
               proc-err @proc-err
-              _ (prn "AFTER PROC ERR" name)
               verbose-out {:proc proc
                            :exit-code exit-code
                            :stdout proc-out
@@ -230,8 +226,6 @@
                        verbose verbose-out
                        (= (:seq options) :err) proc-err
                        :else proc-out)]
-          (prn "HERE 1" name)
-          (prn "HERE 2" @exit-code)
           ;; Not using `zero?` here because exit-code can be a keyword.
           (if (= 0 @exit-code)
             result
@@ -243,8 +237,7 @@
                        *throw*)
                   (exit-exception verbose-out)
 
-                  :else result))
-          (prn "NAME YO" name)))
+                  :else result))))
       (catch InterruptedException e
         (conch/destroy proc)
         (throw e)))))
